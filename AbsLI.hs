@@ -33,13 +33,3 @@ data Exp
   | EInt Integer
   | EVar Ident
   deriving (C.Eq, C.Ord, C.Show, C.Read, Data)
-
--- same as exp, but with idents replaced by exps
-data Exp'
-  = EIf' Exp' Exp' Exp'
-  | EAdd' Exp' Exp'
-  | ESub' Exp' Exp'
-  | EMul' Exp' Exp'
-  | EDiv' Exp' Exp'
-  | EInt' Integer
-  deriving (C.Eq, C.Ord, C.Show, C.Read)
