@@ -34,7 +34,7 @@ type FContext = Context Ident Function
 type EContext = Context Ident Exp'
 
 evalP :: Program -> Integer
-evalP (Prog fs) = eval ([], updatecF [] fs) (Call (Ident "main") [])
+evalP (Prog fs) = eval' (evalP' (Prog fs))
 
 evalP' :: Program -> Exp'
 evalP' (Prog fs) = evalLazy ([], updatecF [] fs) (Call (Ident "main") [])
