@@ -24,13 +24,19 @@ import Prelude
 type Context k v = [(k, v)]
 
 type LContext = (EContext, FContext)
+type LContext' = (EContext', FContext)
 
 type FContext = Context Ident Function
 
 type EContext = Context Ident Exp
+type EContext' = Context Ident Exp'
 
 evalP :: Program -> Integer
 evalP (Prog fs) = eval (evalL ([], updatecF [] fs) (Call (Ident "main") []))
+
+-- Sem SYB
+evalP' :: Program -> Integer
+evalP' (Prog fs) = eval' (evalL' ([], updatecF [] fs) (Call (Ident "main") []))
 
 eval :: Exp -> Integer
 eval x = case x of
@@ -39,10 +45,7 @@ eval x = case x of
   EMul exp0 exp -> eval exp0 * eval exp
   EDiv exp0 exp -> eval exp0 `div` eval exp
   EInt n -> n
-  EIf e1 e2 e3 ->
-    if eval e1 /= 0
-      then eval e2
-      else eval e3
+  EIf e1 e2 e3 -> if eval e1 /= 0 then eval e2 else eval e3
   -- evalL deve ter substituido as variaveis e chamadas de funcao
   -- por suas respectivas expressoes
   EVar id -> error "variavel nao definida"
@@ -58,6 +61,34 @@ evalL context = everywhere (mkT expr)
         binds = zip args exps
         ctx = snd context
     expr e = e
+
+-- Sem SYB
+eval' :: Exp' -> Integer
+eval' x = case x of
+  EAdd' exp0 exp -> eval' exp0 + eval' exp
+  ESub' exp0 exp -> eval' exp0 - eval' exp
+  EMul' exp0 exp -> eval' exp0 * eval' exp
+  EDiv' exp0 exp -> eval' exp0 `div` eval' exp
+  EInt' n -> n
+  EIf' e1 e2 e3 ->
+    if eval' e1 /= 0
+      then eval' e2
+      else eval' e3
+
+evalL' :: LContext' -> Exp -> Exp'
+evalL' context x = case x of
+  EAdd exp0 exp -> EAdd' (evalL' context exp0) (evalL' context exp)
+  ESub exp0 exp -> ESub' (evalL' context exp0) (evalL' context exp)
+  EMul exp0 exp -> EMul' (evalL' context exp0) (evalL' context exp)
+  EDiv exp0 exp -> EDiv' (evalL' context exp0) (evalL' context exp)
+  EInt n -> EInt' n
+  EVar id -> fromJust (lookupMemo id (fst context))
+  EIf e1 e2 e3 -> EIf' (evalL' context e1) (evalL' context e2) (evalL' context e3)
+  Call id lexp -> evalL' (paramBindings, contextFunctions) exp
+    where
+      Fun _ decls exp = fromJust (lookupMemo id (snd context))
+      paramBindings = zip decls (map (evalL' context) lexp)
+      contextFunctions = snd context
 
 updatecF :: FContext -> [Function] -> FContext
 updatecF ctx [] = ctx
